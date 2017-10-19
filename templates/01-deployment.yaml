@@ -1,0 +1,63 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: ${CI_PROJECT_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${CI_PROJECT_NAME}
+spec:
+  revisionHistoryLimit: 2
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${CI_PROJECT_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${CI_PROJECT_NAME}
+    spec:
+      containers:
+      - image: ${CI_REGISTRY_IMAGE}:${BUILD_NUMBER}
+        resources:
+          requests:
+            memory: 5Mi
+            cpu: 5m
+          limits:
+            memory: 15Mi
+            cpu: 70m
+        name: kube-login
+        ports:
+        - name: http
+          containerPort: 5556
+        env:
+        - name: KUBE_APISERVER
+          value: "${CI_ENVIRONMENT_URL}"
+        - name: CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: ${CI_PROJECT_NAME}
+              key: CLIENT_ID
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ${CI_PROJECT_NAME}
+              key: CLIENT_SECRET
+        - name: OIDC_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: ${CI_PROJECT_NAME}
+              key: OIDC_ISSUER
+        - name: CALLBACK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: ${CI_PROJECT_NAME}
+              key: CALLBACK_URL
+        command: ["/login"]
+        args:
+          - --client-id=$(CLIENT_ID)
+          - --client-secret=$(CLIENT_SECRET)
+          - --issuer-root-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          - --issuer=$(OIDC_ISSUER)
+          - --listen=http://0.0.0.0:5556
+          - --redirect-uri=$(CALLBACK_URL)
+          - --api-server=$(KUBE_APISERVER)

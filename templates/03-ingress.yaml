@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ${CI_PROJECT_NAME}-ingress
+  namespace: ${NAMESPACE}
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: 'true'
+spec:
+  tls:
+  - hosts:
+    - ${CI_PROJECT_NAME}.domain.com
+    secretName: ${CI_PROJECT_NAME}.domain.com.tls
+  rules:
+  - host: ${CI_PROJECT_NAME}.domain.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ${CI_PROJECT_NAME}
+          servicePort: 5556
+
