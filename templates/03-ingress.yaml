@@ -1,21 +1,20 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: ${CI_PROJECT_NAME}-ingress
-  namespace: ${NAMESPACE}
+  name: kube-login-ingress
   annotations:
     ingress.kubernetes.io/ssl-redirect: 'true'
 spec:
   tls:
   - hosts:
-    - ${CI_PROJECT_NAME}.domain.com
-    secretName: ${CI_PROJECT_NAME}.domain.com.tls
+    - kube-login.domain.com
+    secretName: kube-login.domain.com.tls
   rules:
-  - host: ${CI_PROJECT_NAME}.domain.com
+  - host: kube-login.domain.com
     http:
       paths:
       - path: /
         backend:
-          serviceName: ${CI_PROJECT_NAME}
+          serviceName: kube-login
           servicePort: 5556
 

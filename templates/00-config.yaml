@@ -1,19 +1,17 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ${CI_PROJECT_NAME}
-  namespace: ${NAMESPACE}
+  name: kube-login
 data:
-  CALLBACK_URL: https://${CI_PROJECT_NAME}.domain.com/callback
-  CLIENT_ID: agi-login
-  OIDC_ISSUER: https://kube-dex.domain.com/dex
+  CALLBACK_URL: https://kube-login.domain.com/callback
+  CLIENT_ID: login-app
+  OIDC_ISSUER: https://dex-deployment.domain.com/dex
   REFRESH_CLIENT_ID: kubectl
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ${CI_PROJECT_NAME}
-  namespace: ${NAMESPACE}
+  name: kube-login
 type: Opaque
 data:
   CLIENT_SECRET: <dex static client secret base64>
@@ -21,8 +19,7 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: ${CI_PROJECT_NAME}.domain.com.tls
-  namespace: ${NAMESPACE}
+  name: kube-login.domain.com.tls
 type: kubernetes.io/tls
 data:
   tls.crt: <base64 cert>

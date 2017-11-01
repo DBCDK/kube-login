@@ -9,28 +9,12 @@ import (
 	"os"
 )
 
-var indexTmpl = template.Must(template.New("index.html").Parse(`<html>
-  <body>
-    <form action="/login" method="post">
-       <p>
-         Authenticate for:<input type="text" name="cross_client" placeholder="list of client-ids">
-       </p>
-       <p>
-         Extra scopes:<input type="text" name="extra_scopes" placeholder="list of scopes">
-       </p>
-	   <p>
-	     Request offline access:<input type="checkbox" name="offline_access" value="yes" checked>
-       </p>
-       <input type="submit" value="Login">
-    </form>
-  </body>
-</html>`))
+var indexTmpl = template.Must(template.ParseFiles("html/index.html"))
+var tokenTmpl = template.Must(template.ParseFiles("html/token.html"))
 
 func renderIndex(w http.ResponseWriter) {
 	renderTemplate(w, indexTmpl, nil)
 }
-
-var tokenTmpl = template.Must(template.ParseFiles("html/token.html"))
 
 func check(e error) {
 	if e != nil {

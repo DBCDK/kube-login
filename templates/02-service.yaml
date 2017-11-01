@@ -1,13 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${CI_PROJECT_NAME}
-  namespace: ${NAMESPACE}
+  name: kube-login
 spec:
   ports:
-  - name: ${CI_PROJECT_NAME}
+  - name: kube-login
     port: 5556
     protocol: TCP
     targetPort: 5556
   selector:
-    app: ${CI_PROJECT_NAME}
+    app: kube-login

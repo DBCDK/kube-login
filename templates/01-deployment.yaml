@@ -1,23 +1,22 @@
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: ${CI_PROJECT_NAME}
-  namespace: ${NAMESPACE}
+  name: kube-login
   labels:
-    app: ${CI_PROJECT_NAME}
+    app: kube-login
 spec:
   revisionHistoryLimit: 2
   replicas: 1
   selector:
     matchLabels:
-      app: ${CI_PROJECT_NAME}
+      app: kube-login
   template:
     metadata:
       labels:
-        app: ${CI_PROJECT_NAME}
+        app: kube-login
     spec:
       containers:
-      - image: ${CI_REGISTRY_IMAGE}:${BUILD_NUMBER}
+      - image: roffe/kube-login:latest
         resources:
           requests:
             memory: 5Mi
@@ -31,26 +30,26 @@ spec:
           containerPort: 5556
         env:
         - name: KUBE_APISERVER
-          value: "${CI_ENVIRONMENT_URL}"
+          value: "https://address.to.kubernetes.api"
         - name: CLIENT_ID
           valueFrom:
             configMapKeyRef:
-              name: ${CI_PROJECT_NAME}
+              name: kube-login
               key: CLIENT_ID
         - name: CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: ${CI_PROJECT_NAME}
+              name: kube-login
               key: CLIENT_SECRET
         - name: OIDC_ISSUER
           valueFrom:
             configMapKeyRef:
-              name: ${CI_PROJECT_NAME}
+              name: kube-login
               key: OIDC_ISSUER
         - name: CALLBACK_URL
           valueFrom:
             configMapKeyRef:
-              name: ${CI_PROJECT_NAME}
+              name: kube-login
               key: CALLBACK_URL
         command: ["/login"]
         args:

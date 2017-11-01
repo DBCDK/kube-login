@@ -22,7 +22,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const exampleAppState = "I wish to wash my irish wristwatch"
+const appState = "I wish to wash my irish wristwatch"
 
 var (
 	globalCApath       string
@@ -171,7 +171,8 @@ func cmd() *cobra.Command {
 			http.HandleFunc("/", a.handleIndex)
 			http.HandleFunc("/login", a.handleLogin)
 			http.HandleFunc("/logo.png", a.handleLogo)
-			http.HandleFunc("/jquery.min.js", a.handleJquery)
+			http.HandleFunc("/copyToClipboard.js", a.handlecopyToClipboard)
+			http.HandleFunc("/styles.css", a.handleStyles)
 			http.HandleFunc(u.Path, a.handleCallback)
 
 			switch listenURL.Scheme {
@@ -186,8 +187,8 @@ func cmd() *cobra.Command {
 			}
 		},
 	}
-	c.Flags().StringVar(&globalapiServerURL, "api-server", "https://kubernetes.domain.dom", "URL to kubernetes API to present in generated kubectl config")
-	c.Flags().StringVar(&a.clientID, "client-id", "kube-login", "OAuth2 client ID of this application.")
+	c.Flags().StringVar(&globalapiServerURL, "api-server", "https://agi-cph-cluster01.int.agillic.eu", "URL to kubernetes API to present in generated kubectl config")
+	c.Flags().StringVar(&a.clientID, "client-id", "agi-login", "OAuth2 client ID of this application.")
 	c.Flags().StringVar(&a.clientSecret, "client-secret", "ZXhhbXBsZS1hcHAtc2VjcmV0", "OAuth2 client secret of this application.")
 	c.Flags().StringVar(&a.redirectURI, "redirect-uri", "http://127.0.0.1:5555/callback", "Callback URL for OAuth2 responses.")
 	c.Flags().StringVar(&issuerURL, "issuer", "http://127.0.0.1:5556/dex", "URL of the OpenID Connect issuer.")
@@ -207,30 +208,6 @@ func main() {
 	}
 }
 
-func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
-	var scopes []string
-	var clients []string
-
-	/*
-		//renderIndex(w)
-		if extraScopes := r.FormValue("extra_scopes"); extraScopes != "" {
-			scopes = strings.Split(extraScopes, " ")
-		}
-		if crossClients := r.FormValue("cross_client"); crossClients != "" {
-			clients = strings.Split(crossClients, " ")
-		}
-	*/
-
-	for _, client := range clients {
-		scopes = append(scopes, "audience:server:client_id:"+client)
-	}
-	authCodeURL := ""
-	scopes = append(scopes, "openid", "profile", "email", "groups", "offline_access")
-	authCodeURL = a.oauth2Config(scopes).AuthCodeURL(exampleAppState, oauth2.AccessTypeOffline)
-
-	http.Redirect(w, r, authCodeURL, http.StatusSeeOther)
-}
-
 func (a *app) oauth2Config(scopes []string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     a.clientID,
@@ -245,8 +222,37 @@ func (a *app) handleLogo(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "html/logo.png")
 }
 
-func (a *app) handleJquery(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "html/jquery.min.js")
+func (a *app) handlecopyToClipboard(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "html/copyToClipboard.js")
+}
+
+func (a *app) handleStyles(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "html/styles.css")
+}
+
+func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
+	renderIndex(w)
+}
+
+func (a *app) handleIndex2(w http.ResponseWriter, r *http.Request) {
+	//renderIndex(w)
+	var scopes []string
+	if extraScopes := r.FormValue("extra_scopes"); extraScopes != "" {
+		scopes = strings.Split(extraScopes, " ")
+	}
+	var clients []string
+	if crossClients := r.FormValue("cross_client"); crossClients != "" {
+		clients = strings.Split(crossClients, " ")
+	}
+	for _, client := range clients {
+		scopes = append(scopes, "audience:server:client_id:"+client)
+	}
+
+	authCodeURL := ""
+	scopes = append(scopes, "openid", "profile", "email", "groups", "offline_access")
+	authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState, oauth2.AccessTypeOffline)
+
+	http.Redirect(w, r, authCodeURL, http.StatusSeeOther)
 }
 
 func (a *app) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -265,12 +271,12 @@ func (a *app) handleLogin(w http.ResponseWriter, r *http.Request) {
 	authCodeURL := ""
 	scopes = append(scopes, "openid", "profile", "email", "groups")
 	if r.FormValue("offline_access") != "yes" {
-		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(exampleAppState)
+		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState)
 	} else if a.offlineAsScope {
 		scopes = append(scopes, "offline_access")
-		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(exampleAppState)
+		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState)
 	} else {
-		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(exampleAppState, oauth2.AccessTypeOffline)
+		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState, oauth2.AccessTypeOffline)
 	}
 
 	http.Redirect(w, r, authCodeURL, http.StatusSeeOther)
@@ -296,8 +302,8 @@ func (a *app) handleCallback(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("no code in request: %q", r.Form), http.StatusBadRequest)
 			return
 		}
-		if state := r.FormValue("state"); state != exampleAppState {
-			http.Error(w, fmt.Sprintf("expected state %q got %q", exampleAppState, state), http.StatusBadRequest)
+		if state := r.FormValue("state"); state != appState {
+			http.Error(w, fmt.Sprintf("expected state %q got %q", appState, state), http.StatusBadRequest)
 			return
 		}
 		token, err = oauth2Config.Exchange(ctx, code)
