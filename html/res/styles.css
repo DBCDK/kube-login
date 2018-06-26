@@ -32,7 +32,7 @@ header .logo {
   position: absolute;
   right: 10px;
   top: 10px;
-  height: 48px;
+  height: 40px;
 }
 
 main {
@@ -46,13 +46,45 @@ main section {
 main p {
   margin-bottom: 10px;
   line-height: 1.5;
-  font-size: 18px;
+  font-size: 22px;
+}
+
+main .logo {
+  height: 100px;
+}
+
+main .choice {
+  border: 0;
+  padding: 15px;
+  float: left;
+  margin: 40px 50px 50px;
+  cursor: pointer;
+}
+
+main .choice p {
+  margin: 15px 0 0;
+  padding: 0;
+  font-size: 22px;
+  text-align: center;
+  color: rgb(216, 0, 39);
+}
+
+main .choice img {
+    height: 150px;
+}
+
+main .choice.disabled {
+  cursor: not-allowed !important;
+}
+
+main a {
+  border: 0;
 }
 
 main button, main input[type=submit] {
   padding: 10px;
-  border: 2px solid #b1286d;
-  color: #b1286d;
+  border: 2px solid rgb(216, 0, 39);
+  color: rgb(216, 0, 39);
   font-size: 18px;
   background-color: transparent;
   cursor: pointer;
@@ -62,7 +94,7 @@ main button, main input[type=submit] {
 }
 
 main button:hover, main input[type=submit]:hover {
-  background-color: #b1286d;
+  background-color: rgb(216, 0, 39);
   color: #ffffff;
 }
 
@@ -78,4 +110,9 @@ main pre {
 
 .clearFix {
   clear: both;
+}
+
+.loggedInAs
+{
+  margin-top: 8px;
 }

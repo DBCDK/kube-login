@@ -1,24 +1,27 @@
 <!DOCTYPE html>
-<html><head>
+<html>
+<head>
   <meta charset="utf-8" />
-  <title>domain.com</title>
-  <link rel="stylesheet" href="styles.css" />
-</head><body>
+    <title>Cloud Login</title>
+    <link rel="stylesheet" href="res/styles.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="res/favicon.ico" />
+</head>
+<body>
   <header>
     <div class="headerInnerWrapper">
-      <h1>Welcome to domain.com</h1>
-      <img class="logo" src="logo.png" />
-      <div class="loggedInAs">Logged in as {{ .Name }}</div>
+      <h1>Velkommen til DBC Cloud</h1>
+        <img class="logo" src="res/logo-dbc.svg" />
+      <div class="loggedInAs"><strong>Bruger:</strong> {{ .Name }}</div>
     </div>
   </header>
   <main>
     <section>
-      <h2>Your token</h2>
+      <h2>ID Token</h2>
       <pre id="idToken">{{ .IDToken }}</pre>
-      <button id="idTokenCopyButton">Copy to clipboard</button>
+      <button id="idTokenCopyButton">Kopier til udklipsholder</button>
     </section>
     <section>
-      <h2>Kubectl Config</h2>
+      <h2>Kubeconfig</h2>
       <pre id="k8config">apiVersion: v1
 clusters:
 - cluster:
@@ -45,7 +48,7 @@ users:
         idp-issuer-url: {{ .IssuerURL }}
         refresh-token: {{ .RefreshToken }}
       name: oidc</pre>
-      <button id="k8configCopyButton">Copy to clipboard</button>
+      <button id="k8configCopyButton">Kopier til udklipsholder</button>
       <div class="clearFix"></div>
     </section>
     {{ if .RefreshToken }}
@@ -54,17 +57,18 @@ users:
       <pre id="refreshToken">{{ .RefreshToken }}</pre>
       <form action="{{ .RedirectURL }}" method="post">
         <input type="hidden" name="refresh_token" value="{{ .RefreshToken }}">
-        <button id="refreshTokenCopyButton">Copy to clipboard</button>
-        <input type="submit" class="button" value="Redeem refresh token">
+        <button id="refreshTokenCopyButton">Kopier til udklipsholder</button>
+        <input type="submit" class="button" value="Genindlæs Refresh Token">
       </form>
       <div class="clearFix"></div>
     </section>
     {{ end }}
   </main>
-  <script src="copyToClipboard.js"></script>
+  <script src="res/copyToClipboard.js"></script>
   <script>
     addCopyTextEventListener('#idTokenCopyButton', '#idToken');
     addCopyTextEventListener('#k8configCopyButton', '#k8config');
     addCopyTextEventListener('#refreshTokenCopyButton', '#refreshToken');
   </script>
-</body></html>
+</body>
+</html>

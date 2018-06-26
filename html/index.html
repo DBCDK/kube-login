@@ -1,23 +1,40 @@
 <!DOCTYPE html>
-<html><head>
+<html>
+<head>
   <meta charset="utf-8" />
-  <title>domain.com</title>
-  <link rel="stylesheet" href="styles.css" />
-</head><body>
+  <title>Cloud Login</title>
+  <link rel="stylesheet" href="res/styles.css" />
+  <link rel="shortcut icon" type="image/x-icon" href="res/favicon.ico" />
+</head>
+<body>
   <header>
     <div class="headerInnerWrapper">    
-      <h1>Welcome to agCloud</h1>
-      <img class="logo" src="logo.png" />
+      <h1>Velkommen til DBC Cloud</h1>
+      <img class="logo" src="res/logo-dbc.svg" />
     </div>
   </header>
   <main>
+      <img class="logo" src="res/logo.png" />
     <div class="warning">
-      <p>By clicking on the "I accept" button below and logging into domain.com, you agree to abide by the terms of the domain.com IT and Electronic Communications Policy.</p>
-      <p>Users are responsible for ensuring that they act in accordance with this policy and other policies and legislation applicable to the domain.com network.</p>
+      <p>Dette er indgangen til vores fælles cloud platform.</p>
+
+      <p>Her får du adgang til, via dit AD-login, at tilgå ressourcer i Kubernetes.<br>
+         På næste side skal du logge ind, men først skal du foretage et valg nedenfor:</p>
     </div>
-    <form action="/login" method="post">
+    <a href="/login?intent=kubeconfig">
+        <div id="btn-kubeconfig" class="choice">
+            <img src="res/config.svg" />
+            <p>Træk kubeconfig</p>
+        </div>
+    </a>
+    <div id="btn-dashboard" class="choice disabled">
+        <img src="res/dashboard.svg" />
+        <p>Gå til dashboard</p>
+    </div>
+    <!--<form action="/login" method="post">
       <input type="hidden" name="offline_access" value="yes" />
       <input type="submit" />
-    </form>
+    </form>-->
   </main>
-</body></html>
+</body>
+</html>

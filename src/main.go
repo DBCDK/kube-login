@@ -20,14 +20,25 @@ import (
 	"github.com/coreos/go-oidc"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
+	"path/filepath"
 )
 
-const appState = "I wish to wash my irish wristwatch"
+const webrootPath = "html"
 
 var (
 	globalCApath       string
 	globalissuerURL    string
 	globalapiServerURL string
+)
+
+var (
+	a         app
+	issuerURL string
+	listen    string
+	tlsCert   string
+	tlsKey    string
+	rootCAs   string
+	debug     bool
 )
 
 // return an HTTP client which trusts the provided root CAs.
@@ -80,15 +91,7 @@ func (d debugTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func cmd() *cobra.Command {
-	var (
-		a         app
-		issuerURL string
-		listen    string
-		tlsCert   string
-		tlsKey    string
-		rootCAs   string
-		debug     bool
-	)
+
 	c := cobra.Command{
 		Use:   "agi-login",
 		Short: "Agillic DEX login client",
@@ -130,49 +133,13 @@ func cmd() *cobra.Command {
 				a.client = http.DefaultClient
 			}
 
-			// TODO(ericchiang): Retry with backoff
-			ctx := oidc.ClientContext(context.Background(), a.client)
-			globalissuerURL = issuerURL
-			provider, err := oidc.NewProvider(ctx, issuerURL)
-			if err != nil {
-				return fmt.Errorf("Failed to query provider %q: %v", issuerURL, err)
+			if err := configureApp(); err != nil {
+				panic(err)
 			}
 
-			var s struct {
-				// What scopes does a provider support?
-				//
-				// See: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
-				ScopesSupported []string `json:"scopes_supported"`
-			}
-			if err := provider.Claims(&s); err != nil {
-				return fmt.Errorf("Failed to parse provider scopes_supported: %v", err)
-			}
-
-			if len(s.ScopesSupported) == 0 {
-				// scopes_supported is a "RECOMMENDED" discovery claim, not a required
-				// one. If missing, assume that the provider follows the spec and has
-				// an "offline_access" scope.
-				a.offlineAsScope = true
-			} else {
-				// See if scopes_supported has the "offline_access" scope.
-				a.offlineAsScope = func() bool {
-					for _, scope := range s.ScopesSupported {
-						if scope == oidc.ScopeOfflineAccess {
-							return true
-						}
-					}
-					return false
-				}()
-			}
-
-			a.provider = provider
-			a.verifier = provider.Verifier(&oidc.Config{ClientID: a.clientID})
-
-			http.HandleFunc("/", a.handleIndex)
+			http.HandleFunc("/res/", a.handleStaticResource)
 			http.HandleFunc("/login", a.handleLogin)
-			http.HandleFunc("/logo.png", a.handleLogo)
-			http.HandleFunc("/copyToClipboard.js", a.handlecopyToClipboard)
-			http.HandleFunc("/styles.css", a.handleStyles)
+			http.HandleFunc("/", a.handleIndex)
 			http.HandleFunc(u.Path, a.handleCallback)
 
 			switch listenURL.Scheme {
@@ -187,11 +154,11 @@ func cmd() *cobra.Command {
 			}
 		},
 	}
-	c.Flags().StringVar(&globalapiServerURL, "api-server", "https://agi-cph-cluster01.int.agillic.eu", "URL to kubernetes API to present in generated kubectl config")
-	c.Flags().StringVar(&a.clientID, "client-id", "agi-login", "OAuth2 client ID of this application.")
+	c.Flags().StringVar(&globalapiServerURL, "api-server", "https://127.0.0.1", "URL to kubernetes API to present in generated kubectl config")
+	c.Flags().StringVar(&a.clientID, "client-id", "kube-login", "OAuth2 client ID of this application.")
 	c.Flags().StringVar(&a.clientSecret, "client-secret", "ZXhhbXBsZS1hcHAtc2VjcmV0", "OAuth2 client secret of this application.")
 	c.Flags().StringVar(&a.redirectURI, "redirect-uri", "http://127.0.0.1:5555/callback", "Callback URL for OAuth2 responses.")
-	c.Flags().StringVar(&issuerURL, "issuer", "http://127.0.0.1:5556/dex", "URL of the OpenID Connect issuer.")
+	c.Flags().StringVar(&issuerURL, "issuer", "https://127.0.0.1:5556", "URL of the OpenID Connect issuer.")
 	c.Flags().StringVar(&listen, "listen", "http://127.0.0.1:5555", "HTTP(S) address to listen at.")
 	c.Flags().StringVar(&tlsCert, "tls-cert", "", "X509 cert file to present when serving HTTPS.")
 	c.Flags().StringVar(&tlsKey, "tls-key", "", "Private key for the HTTPS cert.")
@@ -208,6 +175,48 @@ func main() {
 	}
 }
 
+func configureApp() error {
+	// TODO(ericchiang): Retry with backoff
+	ctx := oidc.ClientContext(context.Background(), a.client)
+	globalissuerURL = issuerURL
+	provider, err := oidc.NewProvider(ctx, issuerURL)
+	if err != nil {
+		return fmt.Errorf("Failed to query provider %q: %v", issuerURL, err)
+	}
+
+	var s struct {
+		// What scopes does a provider support?
+		//
+		// See: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+		ScopesSupported []string `json:"scopes_supported"`
+	}
+	if err := provider.Claims(&s); err != nil {
+		return fmt.Errorf("Failed to parse provider scopes_supported: %v", err)
+	}
+
+	if len(s.ScopesSupported) == 0 {
+		// scopes_supported is a "RECOMMENDED" discovery claim, not a required
+		// one. If missing, assume that the provider follows the spec and has
+		// an "offline_access" scope.
+		a.offlineAsScope = true
+	} else {
+		// See if scopes_supported has the "offline_access" scope.
+		a.offlineAsScope = func() bool {
+			for _, scope := range s.ScopesSupported {
+				if scope == oidc.ScopeOfflineAccess {
+					return true
+				}
+			}
+			return false
+		}()
+	}
+
+	a.provider = provider
+	a.verifier = provider.Verifier(&oidc.Config{ClientID: a.clientID})
+
+	return nil
+}
+
 func (a *app) oauth2Config(scopes []string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     a.clientID,
@@ -218,16 +227,15 @@ func (a *app) oauth2Config(scopes []string) *oauth2.Config {
 	}
 }
 
-func (a *app) handleLogo(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "html/logo.png")
-}
+func (a *app) handleStaticResource(w http.ResponseWriter, r *http.Request) {
+	req := r.URL.Path
+	file := filepath.Join(webrootPath, req)
 
-func (a *app) handlecopyToClipboard(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "html/copyToClipboard.js")
-}
-
-func (a *app) handleStyles(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "html/styles.css")
+	if _, err := os.Stat(file); err == nil {
+		http.ServeFile(w, r, file)
+	} else {
+		http.Error(w, fmt.Sprintf("File not found: %s", req), http.StatusNotFound)
+	}
 }
 
 func (a *app) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -250,12 +258,19 @@ func (a *app) handleIndex2(w http.ResponseWriter, r *http.Request) {
 
 	authCodeURL := ""
 	scopes = append(scopes, "openid", "profile", "email", "groups", "offline_access")
-	authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState, oauth2.AccessTypeOffline)
+	authCodeURL = a.oauth2Config(scopes).AuthCodeURL("", oauth2.AccessTypeOffline)
 
 	http.Redirect(w, r, authCodeURL, http.StatusSeeOther)
 }
 
 func (a *app) handleLogin(w http.ResponseWriter, r *http.Request) {
+
+	intent := r.FormValue("intent")
+	if err := validateIntent(intent); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	var scopes []string
 	if extraScopes := r.FormValue("extra_scopes"); extraScopes != "" {
 		scopes = strings.Split(extraScopes, " ")
@@ -270,13 +285,13 @@ func (a *app) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	authCodeURL := ""
 	scopes = append(scopes, "openid", "profile", "email", "groups")
-	if r.FormValue("offline_access") != "yes" {
-		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState)
+	if false { // TODO: Offline access is always allowed, for now
+		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(intent)
 	} else if a.offlineAsScope {
 		scopes = append(scopes, "offline_access")
-		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState)
+		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(intent)
 	} else {
-		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(appState, oauth2.AccessTypeOffline)
+		authCodeURL = a.oauth2Config(scopes).AuthCodeURL(intent, oauth2.AccessTypeOffline)
 	}
 
 	http.Redirect(w, r, authCodeURL, http.StatusSeeOther)
@@ -302,8 +317,8 @@ func (a *app) handleCallback(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("no code in request: %q", r.Form), http.StatusBadRequest)
 			return
 		}
-		if state := r.FormValue("state"); state != appState {
-			http.Error(w, fmt.Sprintf("expected state %q got %q", appState, state), http.StatusBadRequest)
+		if err := validateIntent(r.FormValue("state")); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		token, err = oauth2Config.Exchange(ctx, code)
@@ -349,4 +364,15 @@ func (a *app) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderToken(w, a.redirectURI, rawIDToken, token.RefreshToken, claimobj, a)
+}
+
+func validateIntent(intent string) error {
+	switch intent {
+	case "kubeconfig":
+	case "dashboard":
+	default:
+		return fmt.Errorf("invalid intent: %s", intent)
+	}
+
+	return nil
 }
