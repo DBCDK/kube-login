@@ -56,7 +56,7 @@ main .logo {
 main .choice {
   border: 0;
   padding: 15px;
-  float: left;
+  text-align: center;
   margin: 40px 50px 50px;
   cursor: pointer;
 }
@@ -79,6 +79,7 @@ main .choice.disabled {
 
 main a {
   border: 0;
+  text-decoration: none;
 }
 
 main button, main input[type=submit] {
