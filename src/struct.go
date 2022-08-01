@@ -23,6 +23,7 @@ type Claim struct {
 type app struct {
 	clientID     string
 	clientSecret string
+	clientSecretFile string
 	redirectURI  string
 
 	verifier *oidc.IDTokenVerifier
